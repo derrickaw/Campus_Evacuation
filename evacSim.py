@@ -2,12 +2,22 @@ import sys
 import simpy
 import numpy
 
+
+"""
+Method to read from the world file and create a basic graph dictionary to pull
+from for creating intersection and parking lot nodes.
+Intersection Format -  (89, 81): [(86, 129), (50, 87)]
+Parking Lot Format  -  (86, 149): 1200
+fileName - name of file to read from
+Return - return intersection dictionary of nodes and incoming queues to node and
+parking lots dictionary of nodes with capacties of each
+"""
 def readFileAndSetUp(fileName):
     worldFile = open(fileName,'r')
     worldFile.readline() # Throw Away top line
 
-
-    nodes_graph = {}
+    intersections_graph = {}
+    parking_nodes = {}
 
     for line in worldFile:
         array = line.split(',')
@@ -16,44 +26,43 @@ def readFileAndSetUp(fileName):
         nodeTo = (int(array[3]),int(array[4]))
         capacity = int(array[5])
 
-        if typeNode == 'Street' and capacity == 1:
-            if nodeTo not in nodes_graph:
-                nodes_graph[nodeTo] = []
-                nodes_graph[nodeTo].append((typeNode,nodeFrom))
+        if typeNode == 'Street':
+            if nodeTo not in intersections_graph:
+                intersections_graph[nodeTo] = []
+                intersections_graph[nodeTo].append(nodeFrom)
             else:
-                nodes_graph[nodeTo].append((typeNode,nodeFrom))
+                intersections_graph[nodeTo].append(nodeFrom)
 
-        elif typeNode == 'Street' and capacity == 2:
-            if nodeTo not in nodes_graph:
-                nodes_graph[nodeTo] = []
-                nodes_graph[nodeTo].append((typeNode,nodeFrom))
+        if typeNode == 'Street' and capacity == 2:
+            if nodeFrom not in intersections_graph:
+                intersections_graph[nodeFrom] = []
+                intersections_graph[nodeFrom].append(nodeTo)
             else:
-                nodes_graph[nodeTo].append((typeNode,nodeFrom))
-            if nodeFrom not in nodes_graph:
-                nodes_graph[nodeFrom] = []
-                nodes_graph[nodeFrom].append((typeNode,nodeTo))
-            else:
-                nodes_graph[nodeFrom].append((typeNode,nodeTo))
+                intersections_graph[nodeFrom].append(nodeTo)
 
         elif typeNode == 'Parking':
-            if nodeTo not in nodes_graph:
-                nodes_graph[nodeTo] = []
-                nodes_graph[nodeTo].append((typeNode,nodeFrom))
+            if nodeTo not in intersections_graph:
+                intersections_graph[nodeTo] = []
+                intersections_graph[nodeTo].append(nodeFrom)
             else:
-                nodes_graph[nodeTo].append((typeNode,nodeFrom))
+                intersections_graph[nodeTo].append(nodeFrom)
+
+            parking_nodes[nodeFrom] = capacity
 
     worldFile.close()
 
-    #for item in sorted(nodes_graph):
-    #    print (item, nodes_graph[item])
+    #for item in sorted(intersections_graph):
+    #    print (item, intersections_graph[item])
 
-    return nodes_graph
+    return intersections_graph, parking_nodes
+
+
 
 def main():
     args = sys.argv
 
-    graph = readFileAndSetUp(args[1])
-    print (graph)
+    intersections, parkingLots = readFileAndSetUp(args[1])
+    #print (intersections, parkingLots)
 
 
 if __name__=='__main__':
