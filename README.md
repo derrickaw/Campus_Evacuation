@@ -27,6 +27,7 @@ We will build the network by creating nodes that represent the intersections.  T
 
 ###Software Implementation:
 We will use SimPy to handle the simulation portion of the project.  SimPy will handle the events and resources used in the simulation based on timestamps.
+Also, since the simulation must be stochastic, i.e., use random numbers to model unpredictable elements of the system. We will be using an existing random number generator library and then validating the random number generator using a suitable statistical test.
 
 
 ### Simplifications:
