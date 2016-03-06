@@ -5,12 +5,14 @@ import numpy
 
 """
 Method to read from the world file and create a basic graph dictionary to pull
-from for creating intersection and parking lot nodes.
-Intersection Format -  (89, 81): [(86, 129), (50, 87)]
+from for creating intersection and parking lot nodes.  There are no one lane
+roads in this model except from exiting a parking lot.
+Intersection Format -  (89, 81): [((86, 129),1), ((50, 87),2)]
 Parking Lot Format  -  (86, 149): 1200
 fileName - name of file to read from
-Return - return intersection dictionary of nodes and incoming queues to node and
-parking lots dictionary of nodes with capacties of each
+Return - return intersection dictionary of nodes and incoming queues to node
+with capacities for each queue (number of lanes) and
+parking lots dictionary of nodes with capacties of each.
 """
 def readFileAndSetUp(fileName):
     worldFile = open(fileName,'r')
@@ -63,7 +65,7 @@ def main():
     args = sys.argv
 
     intersections, parkingLots = readFileAndSetUp(args[1])
-    print (intersections, parkingLots)
+    # print (intersections, parkingLots)
 
 
 if __name__=='__main__':
