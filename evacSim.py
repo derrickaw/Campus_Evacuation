@@ -27,20 +27,21 @@ def readFileAndSetUp(fileName):
         capacity = int(array[5])
 
         if typeNode == 'Street':
+            # Add queue for NodeFrom to NodeTo
             if nodeTo not in intersections_graph:
                 intersections_graph[nodeTo] = []
-                intersections_graph[nodeTo].append(nodeFrom)
+                intersections_graph[nodeTo].append((nodeFrom,capacity))
             else:
-                intersections_graph[nodeTo].append(nodeFrom)
-
-        if typeNode == 'Street' and capacity == 2:
+                intersections_graph[nodeTo].append((nodeFrom,capacity))
+            # Add queue for NodeTo to NodeFrom
             if nodeFrom not in intersections_graph:
                 intersections_graph[nodeFrom] = []
-                intersections_graph[nodeFrom].append(nodeTo)
+                intersections_graph[nodeFrom].append((nodeTo,capacity))
             else:
-                intersections_graph[nodeFrom].append(nodeTo)
+                intersections_graph[nodeFrom].append((nodeTo,capacity))
 
         elif typeNode == 'Parking':
+            # Never allowing a queue to enter parking lot
             if nodeTo not in intersections_graph:
                 intersections_graph[nodeTo] = []
                 intersections_graph[nodeTo].append(nodeFrom)
@@ -62,7 +63,7 @@ def main():
     args = sys.argv
 
     intersections, parkingLots = readFileAndSetUp(args[1])
-    #print (intersections, parkingLots)
+    print (intersections, parkingLots)
 
 
 if __name__=='__main__':
