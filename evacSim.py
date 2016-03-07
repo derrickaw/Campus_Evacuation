@@ -5,7 +5,13 @@ import math
 import queue
 from numpy.random import exponential
 from numpy import mean
+from heapq import heappush, heappop, heapify
 
+
+X_MEAN = 5.0
+PARKING_CAP = .10
+SCALE = 70/500
+CAR_SIZE = 15 * SCALE
 """
 Method to read from the world file and create a basic graph dictionary to pull
 from for creating intersection and parking lot nodes.  There are no one lane
@@ -65,6 +71,22 @@ def readFileAndSetUp(fileName):
 
 
 
+globalTimeList = []
+def globalQueue(parkingDicts):
+
+    for key,value in parkingDicts:
+        X_COUNT = value[0]
+        x_values = exponential (X_MEAN, X_COUNT)
+        print ("X ~ Exp(%g):" % X_MEAN)
+        for (i, x_i) in enumerate (x_values):
+            print ("  X_%d = %g" % (i, x_i))
+        listOfTimeStamps = list(x_values)
+        for time in listOfTimeStamps:
+            carTuple = (time, key, value[1], key)
+            globalTimeList.append(carTuple)
+
+    heapify(globalTimeList)
+
 
 
 
@@ -75,10 +97,6 @@ def readFileAndSetUp(fileName):
 
 def main():
     args = sys.argv
-    X_MEAN = 5.0
-    PARKING_CAP = .10
-    SCALE = 70/500
-    CAR_SIZE = 15 * SCALE
     
     intersections, parkingLots = readFileAndSetUp(args[1])
     # print (intersections, parkingLots)
@@ -119,11 +137,3 @@ if __name__=='__main__':
 #
 # for key, value in intersectionDict:
 #     Intersection(key, value, CAR_SIZE)
-
-
-    # def cars(self, car):
-    #     X_COUNT = ParkingLot.total
-    #     x_values = exponential (X_MEAN, X_COUNT)
-    #     print ("X ~ Exp(%g):" % X_MEAN)
-    #     for (i, x_i) in enumerate (x_values):
-    #         print ("  X_%d = %g" % (i, x_i))
