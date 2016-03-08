@@ -55,15 +55,16 @@ def readFileAndSetUp(fileName):
                 intersections_graph[nodeFrom].append((nodeTo,capacity))
 
         # Parking Nodes; lets process these; never allowing a queue to enter
+        # parking lot; use one as a capacity holder for roads coming from
         # parking lot
         elif typeNode == 'Parking':
             if nodeTo not in intersections_graph:
                 intersections_graph[nodeTo] = []
-                intersections_graph[nodeTo].append(nodeFrom)
+                intersections_graph[nodeTo].append((nodeFrom,1))
             # Shouldn't ever happen, since there is only one parking lot per
             # coordinate, but let's check anyways
             else:
-                intersections_graph[nodeTo].append(nodeFrom)
+                intersections_graph[nodeTo].append((nodeFrom, 1))
 
             parking_nodes[nodeFrom] = (capacity, nodeTo)
 
@@ -74,10 +75,30 @@ def readFileAndSetUp(fileName):
 
     return intersections_graph, parking_nodes
 
-
-
+"""
+Method to create dictionary of current and maximum capacities for each queuing
+road segment upto a particular intersection.  The dictionary can be accessed by
+asking from the dictionary what intersection of queues you want.
+intersections - dictionary of intersections for the entire map system
+Return - return intersection dictionary of upstream nodes with current and max
+queue size.
+Intersection Format - (348, 30): [((168, 30), 0, 171), ((380, 35), 0, 30)]
+"""
 def createQueuingCapacityDict(intersections):
     currentRoadCapacities = {}
+
+    # Go through each intersection node in the intersection dictionary
+    for intersectionNode in intersections:
+        currentRoadCapacities[intersectionNode] = []
+        # Go through each upstream node and add capacity
+        for upstreamNode, numLanes in intersections[intersectionNode]:
+            currentRoadCapacities[intersectionNode].append((upstreamNode,0,
+            calculateRoadCapacity(intersectionNode, upstreamNode, numLanes)))
+
+    return currentRoadCapacities
+
+
+
 
 
 globalTimeList = []
@@ -99,7 +120,7 @@ def globalQueue(parkingDicts):
 
 
 
-    pass
+
 
 
 
@@ -115,9 +136,9 @@ def calculateRoadCapacity(firstNode, secondNode, numLanes):
     # Use Euclid distance
     distance = ((firstNode[0] - secondNode[0])**2 +
                 (firstNode[1] - secondNode[1])**2)**(0.5)
-    numCarsCapacity = distance * numLanes // CAR_SIZE
+    numCarsCapacity = (distance * numLanes) // CAR_SIZE
 
-    return numCarsCapacity
+    return int(numCarsCapacity)
 
 
 
@@ -127,10 +148,15 @@ def main():
     args = sys.argv
 
     intersections, parkingLots = readFileAndSetUp(args[1])
+    currentRoadCapacities = createQueuingCapacityDict(intersections)
 
-    #print (intersections)
-    #print (parkingLots)
-    #print (calculateRoadCapacity((0,0), (10,0), 1))
+
+
+    # Test
+    # print (intersections)
+    # print (currentRoadCapacities)
+    # print (parkingLots)
+    # print (calculateRoadCapacity((0,0), (10,0), 1))
 
 if __name__=='__main__':
 	main()
