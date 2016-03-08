@@ -8,11 +8,14 @@ from numpy import mean
 from heapq import heappush, heappop, heapify
 
 # Globals
-X_MEAN = 5.0
+X_MEAN_PARKING = 5.0
 PARKING_CAP = .10
 SCALE = 70/500
 CAR_SIZE = 15 * SCALE
 
+# Event parameters
+MEAN_TRAVEL_TIME = 5.0 # minutes
+MEAN_WAITING_TIME = 2.0 # minutes
 
 """
 Method to read from the world file and create a basic graph dictionary to pull
@@ -83,23 +86,76 @@ def createQueuingCapacityDict(intersections):
 globalTimeList = []
 def globalQueue(parkingDicts):
 
-    for key,value in parkingDicts:
-        X_COUNT = value[0]
-        x_values = exponential (X_MEAN, X_COUNT)
-        print ("X ~ Exp(%g):" % X_MEAN)
-        for (i, x_i) in enumerate (x_values):
-            print ("  X_%d = %g" % (i, x_i))
+    for key in parkingDicts:
+        #print(key, parkingDicts[key][0])
+        X_COUNT = parkingDicts[key][0]
+        x_values = exponential (X_MEAN_PARKING, X_COUNT)
+        #print("X ~ Exp(%g):" % X_MEAN)
+        #for (i, x_i) in enumerate (x_values):
+            #print ("  X_%d = %g" % (i, x_i))
         listOfTimeStamps = list(x_values)
         for time in listOfTimeStamps:
-            carTuple = (time, key, value[1], key)
+            carTuple = (time, key, parkingDicts[key][1], key)
             globalTimeList.append(carTuple)
 
     heapify(globalTimeList)
 
 
+now = 0.0 # Current (logical) simulation time
+state = {'AtParking': 0          # no. cars at pump or waiting
+         , 'AtIntersection': 0       # no. cars at store
+         , 'IntersectionFree': True   # True <==> pump is available
+        }
 
 
-    pass
+def schedule (t, e):
+    """
+    Schedules a new event `e` at time `t`.
+    """
+    global events
+    print ("  ==> '%s' @ t=%g" % (e.__name__, t))
+    heappush (events, (t, e))
+
+def arrives (t, s):
+    """
+    Processes an arrival event at time `t` for a system in state `s`.
+    Schedules a pumping event if the pump is free. Returns the new
+    system state.
+    """
+    # @YOUSE
+    s['AtPump'] += 1
+    if s['PumpFree']:
+            s['PumpFree'] = False
+            t_done = t + exponential (MEAN_PUMPING_TIME)
+            schedule (t_done, finishes)
+    return s
+
+def finishes (t, s):
+    """
+    Processes a finished-pumping event at time `t` for a system in
+    state `s`. Schedules a pumping event if any cars are waiting.
+    Returns the new system state.
+    """
+    # @YOUSE
+    s['AtPump'] -= 1
+    if s['PumpFree'] > 0:
+        #schedule
+        schedule (t + exponential (MEAN_PUMPING_TIME), finishes)
+    else:
+        s['PumpFree'] = True
+    s['AtStore'] += 1
+    schedule (t + exponential (MEAN_PUMPING_TIME), departs)
+    return
+
+def departs (t, s):
+    """
+    Processes a departure from the station event at
+    time `t` for a system in state `s`.
+    """
+    # @YOUSE
+    s['AtStore'] -= 1
+    return s
+
 
 
 
@@ -119,9 +175,25 @@ def calculateRoadCapacity(firstNode, secondNode, numLanes):
 
     return numCarsCapacity
 
+from copy import deepcopy
+
+def simulate (events, initial_state):
+    s = deepcopy (initial_state)
+
+    print ("\nFuture event list:\n%s" % str (events))
+    print ("\nt=0: %s" % str (s))
+
+    while events:
+        # @YOUSE: Get event and process it
+        (t,e) = heappop (events)
+        e (t,s)
+
+        print ("t=%d: event '%s' => '%s'" % (t, e.__name__, str (s)))
 
 
 
+# More test code: If everything worked, so should this simulation!
+simulate (events, state)
 
 def main():
     args = sys.argv
@@ -131,7 +203,8 @@ def main():
     #print (intersections)
     #print (parkingLots)
     #print (calculateRoadCapacity((0,0), (10,0), 1))
-
+    globalQueue(parkingLots)
+    print("GLOBAL QUEUE:", sorted(globalTimeList))
 if __name__=='__main__':
 	main()
 
