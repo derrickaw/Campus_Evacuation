@@ -114,14 +114,15 @@ def createQueuingCapacityDict(intersections):
 def globalQueue(parkingDicts):
     for key in parkingDicts:
         #print(key, parkingDicts[key][0])
-        X_COUNT = parkingDicts[key][0]
+        X_COUNT = parkingDicts[key] * PARKING_CAP
         x_values = exponential (X_MEAN_PARKING, X_COUNT)
         #print("X ~ Exp(%g):" % X_MEAN)
         #for (i, x_i) in enumerate (x_values):
             #print ("  X_%d = %g" % (i, x_i))
         listOfTimeStamps = list(x_values)
         for time in listOfTimeStamps:
-            carTuple = (time, key, parkingDicts[key][1], key) #timestamp, from, to, parkinglot
+            carTuple = (time, key, currentRoadCapacities[key][0][0], key) #timestamp, from, to, parkinglot
+            print("CURR RD CAP KEY[0]:", currentRoadCapacities[key][0][0])
             globalTimeList.append((carTuple, togo))
     heapify(globalTimeList)
 
@@ -164,13 +165,13 @@ def togo (car_tuple):
 
         else:
             # random location
-            print(currentRoadCapacities)
-            print(car_tuple[1])
+            #print("CURRENT RD CAP IN TOGO:" , currentRoadCapacities)
+            #print("TOGO CAR TUP[1] - from:", car_tuple[1])
             values = currentRoadCapacities[car_tuple[1]]
             random_bound = len(values)
             index = randint(0,random_bound)
             # check for capacity
-            car_tuple = (car_tuple[0], car_tuple[2], values[index][0], car_tuple[3])
+            car_tuple = (car_tuple[0], car_tuple[2], values[index-1][0], car_tuple[3])
 
 
 
@@ -185,11 +186,16 @@ def departs (fromNode, toNode):
     state `s`. Schedules a pumping event if any cars are waiting.
     Returns the new system state.
     """
+    #print("FROM AND TO NODES IN DEPARTS:", fromNode, "===>", toNode)
     global currentRoadCapacities
     values = currentRoadCapacities[fromNode]
+    #print("TST:", fromNode, ":", toNode)
+    #print("VALUES IN DEPART:", values)
+    # find to node in the list of value and increase its capacity i.e. it has departed
     for value in values:
         if toNode == value[0]:
-            value[1] += 1
+            inc_cap = value[1] + 1
+            value = (value[0], inc_cap)
 
 
 
@@ -219,7 +225,7 @@ def simulate (events):
     while events:
         (car_tuple,event) = heappop (events)
         event(car_tuple)
-
+        print(exit_count)
         #print ("t=%d: event '%s' => '%s'" % (t, e.__name__, str (s)))
 
 
@@ -236,7 +242,7 @@ def main():
 
     # Test
     # print (intersections)
-    print (currentRoadCapacities)
+    #print ("CURENT ROAD CAP:", currentRoadCapacities)
     # print (parkingLots)
     # print (calculateRoadCapacity((0,0), (10,0), 1))
 
@@ -246,7 +252,7 @@ def main():
     globalQueue(parkingLots)
     #print("GLOBAL QUEUE:", sorted(globalTimeList))
     simulate (globalTimeList)
-    print(exit_count)
+    #print("EXIT CT", exit_count)
 if __name__=='__main__':
 	main()
 
