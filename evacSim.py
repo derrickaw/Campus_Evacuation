@@ -31,7 +31,7 @@ Return - return intersection dictionary of nodes and incoming queues to node
 with capacities for each queue (number of lanes) and
 parking lots dictionary of nodes with capacties of each.
 Intersection Format -  (89, 81): [((86, 129),1), ((50, 87),2)]
-Parking Lot Format  -  (86, 149): (1200, (83, 43))
+Parking Lot Format  -  (86, 149): 1200
 """
 def readFileAndSetUp(fileName):
     worldFile = open(fileName,'r')
@@ -49,32 +49,33 @@ def readFileAndSetUp(fileName):
 
         # Street Nodes; lets process these
         if typeNode == 'Street':
-            # Add queue for NodeFrom to NodeTo
-            if nodeTo not in intersections_graph:
-                intersections_graph[nodeTo] = []
-                intersections_graph[nodeTo].append((nodeFrom,capacity))
-            else:
-                intersections_graph[nodeTo].append((nodeFrom,capacity))
             # Add queue for NodeTo to NodeFrom
             if nodeFrom not in intersections_graph:
                 intersections_graph[nodeFrom] = []
                 intersections_graph[nodeFrom].append((nodeTo,capacity))
             else:
                 intersections_graph[nodeFrom].append((nodeTo,capacity))
+            # Add queue for NodeFrom to NodeTo
+            if nodeTo not in intersections_graph:
+                intersections_graph[nodeTo] = []
+                intersections_graph[nodeTo].append((nodeFrom,capacity))
+            else:
+                intersections_graph[nodeTo].append((nodeFrom,capacity))
+
 
         # Parking Nodes; lets process these; never allowing a queue to enter
         # parking lot; use one as a capacity holder for roads coming from
         # parking lot
         elif typeNode == 'Parking':
-            if nodeTo not in intersections_graph:
-                intersections_graph[nodeTo] = []
-                intersections_graph[nodeTo].append((nodeFrom,1))
+            if nodeFrom not in intersections_graph:
+                intersections_graph[nodeFrom] = []
+                intersections_graph[nodeFrom].append((nodeTo,1))
             # Shouldn't ever happen, since there is only one parking lot per
             # coordinate, but let's check anyways
             else:
-                intersections_graph[nodeTo].append((nodeFrom, 1))
+                intersections_graph[nodeFrom].append((nodeTo, 1))
 
-            parking_nodes[nodeFrom] = (capacity, nodeTo)
+            parking_nodes[nodeFrom] = (capacity) #, nodeTo)
 
     worldFile.close()
 
@@ -98,10 +99,10 @@ def createQueuingCapacityDict(intersections):
     # Go through each intersection node in the intersection dictionary
     for intersectionNode in intersections:
         currentRoadCapacities[intersectionNode] = []
-        # Go through each upstream node and add capacity
-        for upstreamNode, numLanes in intersections[intersectionNode]:
-            currentRoadCapacities[intersectionNode].append((upstreamNode,0,
-            calculateRoadCapacity(intersectionNode, upstreamNode, numLanes)))
+        # Go through each downstream node and add capacity
+        for downstreamNode, numLanes in intersections[intersectionNode]:
+            currentRoadCapacities[intersectionNode].append((downstreamNode,
+            calculateRoadCapacity(intersectionNode, downstreamNode, numLanes)))
 
     return currentRoadCapacities
 
