@@ -11,7 +11,7 @@ from random import randint
 
 # Globals
 X_MEAN_PARKING = 5.0
-PARKING_CAP = .10
+PARKING_CAP = .01
 SCALE = 70/500
 CAR_SIZE = 15 * SCALE
 POLICE = False
@@ -114,7 +114,7 @@ def createQueuingCapacityDict(intersections):
 def globalQueue(parkingDicts):
     for key in parkingDicts:
         #print(key, parkingDicts[key][0])
-        X_COUNT = parkingDicts[key] * PARKING_CAP
+        X_COUNT = int(parkingDicts[key] * PARKING_CAP)
         x_values = exponential (X_MEAN_PARKING, X_COUNT)
         #print("X ~ Exp(%g):" % X_MEAN)
         #for (i, x_i) in enumerate (x_values):
@@ -225,7 +225,7 @@ def simulate (events):
     while events:
         (car_tuple,event) = heappop (events)
         event(car_tuple)
-        print(exit_count)
+        #print(exit_count)
         #print ("t=%d: event '%s' => '%s'" % (t, e.__name__, str (s)))
 
 
