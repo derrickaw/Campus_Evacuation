@@ -27,7 +27,7 @@ This campus evacuation model can be abstracted as a queueing network conceptual 
 - **Police direction condition**:Police direction condition: In the case, cars will be allowed to travel only in the direction that the police allow them to. The police will never allow the cars to travel westward. Furthermore, the police will make all the cars go to the three main exit routes (North Avenue, Fifth Street, and Tenth Street). Police will never allow cars to go pick another exit route even if the queue for one exit route is filled. The cars will simply have to wait in the parking lot.
 
 ###Software Implementation:
-We will use SimPy to handle the simulation portion of the project.  SimPy will handle the events and resources used in the simulation based on timestamps.
+~We will use SimPy to handle the simulation portion of the project.  SimPy will handle the events and resources used in the simulation based on timestamps.~
 Also, since the simulation must be stochastic, i.e., use random numbers to model unpredictable elements of the system. We will be using an existing random number generator library and then validating the random number generator using a suitable statistical test.
 
 ### Simplifications:
