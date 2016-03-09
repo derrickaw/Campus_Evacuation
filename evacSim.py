@@ -6,18 +6,22 @@ import queue
 from numpy.random import exponential
 from numpy import mean
 from heapq import heappush, heappop, heapify
+from random import randint
+
 
 # Globals
 X_MEAN_PARKING = 5.0
 PARKING_CAP = .10
 SCALE = 70/500
 CAR_SIZE = 15 * SCALE
-
+POLICE = False
+exit_count = 0
 # Event parameters
 MEAN_TRAVEL_TIME = 5.0 # minutes
 MEAN_WAITING_TIME = 2.0 # minutes
 globalTimeList = []
 currentRoadCapacities = {}
+exit_list = [(-1,-1), (-1,-1), (-1,-1)]
 """
 Method to read from the world file and create a basic graph dictionary to pull
 from for creating intersection and parking lot nodes.  There are no one lane
@@ -89,7 +93,7 @@ queue size.
 Intersection Format - (348, 30): [((168, 30), 0, 171), ((380, 35), 0, 30)]
 """
 def createQueuingCapacityDict(intersections):
-    currentRoadCapacities = {}
+    global currentRoadCapacities
 
     # Go through each intersection node in the intersection dictionary
     for intersectionNode in intersections:
@@ -117,7 +121,7 @@ def globalQueue(parkingDicts):
         listOfTimeStamps = list(x_values)
         for time in listOfTimeStamps:
             carTuple = (time, key, parkingDicts[key][1], key) #timestamp, from, to, parkinglot
-            globalTimeList.append(carTuple)
+            globalTimeList.append((carTuple, togo))
     heapify(globalTimeList)
 
 
@@ -143,9 +147,35 @@ def arrives (car_tuple):
 
 def togo (car_tuple):
     "figure out where to go"
-    if car_tuple[1] != car_tuple[3]:
-        departs(car_tuple[1], car_tuple[2])
-    schedule(car_tuple, arrives)
+    if car_tuple[2] in exit_list:
+        global exit_count
+        exit_count += 1
+    else:
+        if POLICE:
+            #shortest distance
+            values = currentRoadCapacities[car_tuple[1]]
+            mini_distance_list = []
+            for value in values:
+                mini_distance_list.append(math.hypot(car_tuple[1][0] - value[0], car_tuple[1][1] - value[1]))
+
+            shortest_distance = min(mini_distance_list)
+            car_tuple = (car_tuple[0], car_tuple[2], shortest_distance, car_tuple[3])
+
+        else:
+            # random location
+            print(currentRoadCapacities)
+            print(car_tuple[1])
+            values = currentRoadCapacities[car_tuple[1]]
+            random_bound = len(values)
+            index = randint(0,random_bound)
+            # check for capacity
+            car_tuple = (car_tuple[0], car_tuple[2], values[index][0], car_tuple[3])
+
+
+
+        if car_tuple[1] != car_tuple[3]: #not in parking lot
+            departs(car_tuple[1], car_tuple[2])
+        schedule(car_tuple, arrives)
 
 
 def departs (fromNode, toNode):
@@ -179,25 +209,21 @@ def calculateRoadCapacity(firstNode, secondNode, numLanes):
 
     return int(numCarsCapacity)
 
-from copy import deepcopy
 
-def simulate (events, initial_state):
-    s = deepcopy (initial_state)
+def simulate (events):
 
-    print ("\nFuture event list:\n%s" % str (events))
-    print ("\nt=0: %s" % str (s))
+    # print ("\nFuture event list:\n%s" % str (events))
+    # print ("\nt=0: %s" % str (s))
 
     while events:
-        # @YOUSE: Get event and process it
-        (t,e) = heappop (events)
-        e (t,s)
+        (car_tuple,event) = heappop (events)
+        event(car_tuple)
 
-        print ("t=%d: event '%s' => '%s'" % (t, e.__name__, str (s)))
+        #print ("t=%d: event '%s' => '%s'" % (t, e.__name__, str (s)))
 
 
 
 # More test code: If everything worked, so should this simulation!
-simulate (events, state)
 
 def main():
     args = sys.argv
@@ -209,7 +235,7 @@ def main():
 
     # Test
     # print (intersections)
-    # print (currentRoadCapacities)
+    print (currentRoadCapacities)
     # print (parkingLots)
     # print (calculateRoadCapacity((0,0), (10,0), 1))
 
@@ -217,7 +243,9 @@ def main():
     #print (parkingLots)
     #print (calculateRoadCapacity((0,0), (10,0), 1))
     globalQueue(parkingLots)
-    print("GLOBAL QUEUE:", sorted(globalTimeList))
+    #print("GLOBAL QUEUE:", sorted(globalTimeList))
+    simulate (globalTimeList)
+    print(exit_count)
 if __name__=='__main__':
 	main()
 
