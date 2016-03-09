@@ -16,7 +16,8 @@ CAR_SIZE = 15 * SCALE
 # Event parameters
 MEAN_TRAVEL_TIME = 5.0 # minutes
 MEAN_WAITING_TIME = 2.0 # minutes
-
+globalTimeList = []
+currentRoadCapacities = {}
 """
 Method to read from the world file and create a basic graph dictionary to pull
 from for creating intersection and parking lot nodes.  There are no one lane
@@ -104,9 +105,8 @@ def createQueuingCapacityDict(intersections):
 
 
 
-globalTimeList = []
+# Create the global queue of car tuples
 def globalQueue(parkingDicts):
-
     for key in parkingDicts:
         #print(key, parkingDicts[key][0])
         X_COUNT = parkingDicts[key][0]
@@ -116,67 +116,49 @@ def globalQueue(parkingDicts):
             #print ("  X_%d = %g" % (i, x_i))
         listOfTimeStamps = list(x_values)
         for time in listOfTimeStamps:
-            carTuple = (time, key, parkingDicts[key][1], key)
+            carTuple = (time, key, parkingDicts[key][1], key) #timestamp, from, to, parkinglot
             globalTimeList.append(carTuple)
-
     heapify(globalTimeList)
 
 
 now = 0.0 # Current (logical) simulation time
-state = {'AtParking': 0          # no. cars at pump or waiting
-         , 'AtIntersection': 0       # no. cars at store
-         , 'IntersectionFree': True   # True <==> pump is available
-        }
 
-
-
-def schedule (t, e):
+def schedule (car_tuple, event):
     """
     Schedules a new event `e` at time `t`.
     """
-    global events
-    print ("  ==> '%s' @ t=%g" % (e.__name__, t))
-    heappush (events, (t, e))
+    global globalTimeList
+    heappush (globalTimeList, (car_tuple, event))
 
-def arrives (t, s):
+def arrives (car_tuple):
     """
     Processes an arrival event at time `t` for a system in state `s`.
     Schedules a pumping event if the pump is free. Returns the new
     system state.
     """
     # @YOUSE
-    s['AtPump'] += 1
-    if s['PumpFree']:
-            s['PumpFree'] = False
-            t_done = t + exponential (MEAN_PUMPING_TIME)
-            schedule (t_done, finishes)
-    return s
+    t_done = car_tuple[0] + MEAN_TRAVEL_TIME
+    car_tuple = (t_done, car_tuple[1], car_tuple[2], car_tuple[3])
+    schedule (car_tuple, togo)
 
-def finishes (t, s):
+def togo (car_tuple):
+    "figure out where to go"
+    if car_tuple[1] != car_tuple[3]:
+        departs(car_tuple[1], car_tuple[2])
+    schedule(car_tuple, arrives)
+
+
+def departs (fromNode, toNode):
     """
     Processes a finished-pumping event at time `t` for a system in
     state `s`. Schedules a pumping event if any cars are waiting.
     Returns the new system state.
     """
-    # @YOUSE
-    s['AtPump'] -= 1
-    if s['PumpFree'] > 0:
-        #schedule
-        schedule (t + exponential (MEAN_PUMPING_TIME), finishes)
-    else:
-        s['PumpFree'] = True
-    s['AtStore'] += 1
-    schedule (t + exponential (MEAN_PUMPING_TIME), departs)
-    return
-
-def departs (t, s):
-    """
-    Processes a departure from the station event at
-    time `t` for a system in state `s`.
-    """
-    # @YOUSE
-    s['AtStore'] -= 1
-    return s
+    global currentRoadCapacities
+    values = currentRoadCapacities[fromNode]
+    for value in values:
+        if toNode == value[0]:
+            value[1] += 1
 
 
 
