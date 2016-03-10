@@ -112,6 +112,21 @@ def createQueuingCapacityDict(intersections):
     return currentRoadCapacities
 
 
+def provideListOfPossibleMovesNoLeft(fromNode, toNode):
+    availableMoves = []
+
+    curCapDownstreamFromToNode = currentRoadCapacities[toNode]
+    print("curCAPDSFRMNODE:", curCapDownstreamFromToNode)
+    for nextMove in curCapDownstreamFromToNode:
+        print("FROMNODE:", fromNode)
+        print("FROMNODE[0] - x-coor:", fromNode[0])
+        print("NEXTMOVE[0][0] - x-coor:", nextMove[0][0])
+        # end of if statement to ensure no left moves are made
+        if nextMove[1] > 0 and nextMove[0] != fromNode and nextMove[0][0] >= fromNode[0]:
+            availableMoves.append(nextMove)
+    print("AVAIL MOVES:", availableMoves)
+    return availableMoves
+
 def provideListOfPossibleMoves(fromNode, toNode):
     availableMoves = []
 
@@ -207,7 +222,7 @@ def togo (car_tuple):
             #print("CURRENT RD CAP IN TOGO:" , currentRoadCapacities)
             #print("TOGO CAR TUP[1] - from:", car_tuple[1])
             #values = currentRoadCapacities[car_tuple[2]]
-            values = provideListOfPossibleMoves(car_tuple[1], car_tuple[2])
+            values = provideListOfPossibleMovesNoLeft(car_tuple[1], car_tuple[2])
 
             # Make car wait, if no choices available
             if len(values) == 0:
@@ -328,7 +343,7 @@ def main():
 
     globalQueue(newParkingLots)
     print (len(globalTimeList))
-    print("GLOBAL QUEUE:", sorted(globalTimeList))
+    #print("GLOBAL QUEUE:", sorted(globalTimeList))
     simulate (globalTimeList)
 
     # print (len(paths))
@@ -336,14 +351,14 @@ def main():
     print("currentTracker",capacityTracker[-1])
 
     print (len(globalTimeList))
-    print ("current globaltimelist",globalTimeList)
+    #print ("current globaltimelist",globalTimeList)
     #print("(523,229)",currentRoadCapacities[(523,229)])
     #print("(562,32)",currentRoadCapacities[(562,32)])
 
     # print (capacityTracker)
     # Plot road capacities
-    #plt.plot(capacityTracker)
-    #plt.show()
+    plt.plot(capacityTracker)
+    plt.show()
 
     # Plot paths of cars
     # for key in paths:
