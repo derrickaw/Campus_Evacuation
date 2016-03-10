@@ -151,7 +151,7 @@ def togo (car_tuple):
     # TODO: no leftward, check capacity (if exceeds cap, then put back into globalqueue - maybe call schedule again?),
     # check if the event methods make sense and the simulate is properly executing, add shortest distance for POPO and
     # get random route scenario working
-    
+
     "figure out where to go"
     if car_tuple[2] in exit_list:
         global exit_count
