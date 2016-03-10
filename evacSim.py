@@ -1,27 +1,32 @@
 import sys
 import simpy
-import numpy
+import numpy as np
 import math
 import queue
 from numpy.random import exponential
 from numpy import mean
 from heapq import heappush, heappop, heapify
 from random import randint
+import matplotlib.pyplot as plt
 
 
 # Globals
 X_MEAN_PARKING = 5.0
-PARKING_CAP = .01
+PARKING_CAP = 1
 SCALE = 70/500
 CAR_SIZE = 15 * SCALE
 POLICE = False
-exit_count = 0
 # Event parameters
-MEAN_TRAVEL_TIME = 5.0 # minutes
-MEAN_WAITING_TIME = 2.0 # minutes
+MEAN_TRAVEL_TIME = 5.0 # seconds
+MEAN_WAITING_TIME = 2.0 # seconds
 globalTimeList = []
 currentRoadCapacities = {}
-exit_list = [(-1,-1), (-1,-1), (-1,-1)]
+exit_list = [(723,32),(733,270),(760,555)] # Exit locations - 10th,5th,North Ave
+exit_count = {(723,32):0, (733,270):0, (760,555):0} # Count cars exiting
+paths = {}
+capacityTracker = []
+parkingLots = {}
+
 """
 Method to read from the world file and create a basic graph dictionary to pull
 from for creating intersection and parking lot nodes.  There are no one lane
@@ -107,11 +112,38 @@ def createQueuingCapacityDict(intersections):
     return currentRoadCapacities
 
 
+def provideListOfPossibleMoves(fromNode, toNode):
+    availableMoves = []
 
+    curCapDownstreamFromToNode = currentRoadCapacities[toNode]
+    for nextMove in curCapDownstreamFromToNode:
+        if nextMove[1] > 0 and nextMove[0] != fromNode:
+            availableMoves.append(nextMove)
+
+    return availableMoves
+
+
+def changeAvailableCapacity(fromNode, ToNode, arriving=True):
+    global currentRoadCapacities
+
+    #print ("from,to",fromNode,ToNode)
+    curCapDownstreamFromNode = currentRoadCapacities[fromNode]
+    #print ("begin",curCapDownstreamFromNode)
+    for i in range(len(curCapDownstreamFromNode)):
+        if curCapDownstreamFromNode[i][0] == ToNode:
+            if arriving:
+                curCapDownstreamFromNode[i] = (ToNode, curCapDownstreamFromNode[i][1]-1)
+            else:
+                curCapDownstreamFromNode[i] = (ToNode, curCapDownstreamFromNode[i][1]+1)
+
+
+    #print ("end",curCapDownstreamFromNode)
 
 
 # Create the global queue of car tuples
 def globalQueue(parkingDicts):
+    global globalTimeList
+
     for key in parkingDicts:
         #print(key, parkingDicts[key][0])
         X_COUNT = int(parkingDicts[key] * PARKING_CAP)
@@ -120,9 +152,12 @@ def globalQueue(parkingDicts):
         #for (i, x_i) in enumerate (x_values):
             #print ("  X_%d = %g" % (i, x_i))
         listOfTimeStamps = list(x_values)
+        count = 0
         for time in listOfTimeStamps:
-            carTuple = (time, key, currentRoadCapacities[key][0][0], key) #timestamp, from, to, parkinglot
-            print("CURR RD CAP KEY[0]:", currentRoadCapacities[key][0][0])
+            carTuple = (time, key, currentRoadCapacities[key][0][0], (key,count)) #timestamp, from, to, parkinglot
+            paths[(key,count)] = []
+            count += 1
+            #print("CURR RD CAP KEY[0]:", currentRoadCapacities[key][0][0])
             globalTimeList.append((carTuple, togo))
     heapify(globalTimeList)
 
@@ -142,7 +177,7 @@ def arrives (car_tuple):
     Schedules a pumping event if the pump is free. Returns the new
     system state.
     """
-    # @YOUSE
+    changeAvailableCapacity(car_tuple[1], car_tuple[2], True)
     t_done = car_tuple[0] + MEAN_TRAVEL_TIME
     car_tuple = (t_done, car_tuple[1], car_tuple[2], car_tuple[3])
     schedule (car_tuple, togo)
@@ -151,12 +186,14 @@ def togo (car_tuple):
     # TODO: no leftward, check capacity (if exceeds cap, then put back into globalqueue - maybe call schedule again?),
     # check if the event methods make sense and the simulate is properly executing, add shortest distance for POPO and
     # get random route scenario working
+    global exit_count
 
     "figure out where to go"
     if car_tuple[2] in exit_list:
-        global exit_count
-        exit_count += 1
+        exit_count[car_tuple[2]] += 1
+        departs(car_tuple[1],car_tuple[2])
     else:
+
         if POLICE:
             #shortest distance
             values = currentRoadCapacities[car_tuple[1]]
@@ -166,22 +203,37 @@ def togo (car_tuple):
 
             shortest_distance = min(mini_distance_list)
             car_tuple = (car_tuple[0], car_tuple[2], shortest_distance, car_tuple[3])
-
-        else:
-            # random location
+        else: # random location
             #print("CURRENT RD CAP IN TOGO:" , currentRoadCapacities)
             #print("TOGO CAR TUP[1] - from:", car_tuple[1])
-            values = currentRoadCapacities[car_tuple[1]]
-            random_bound = len(values)
-            index = randint(0,random_bound)
-            # check for capacity
-            car_tuple = (car_tuple[0], car_tuple[2], values[index-1][0], car_tuple[3])
+            #values = currentRoadCapacities[car_tuple[2]]
+            values = provideListOfPossibleMoves(car_tuple[1], car_tuple[2])
 
+            # Make car wait, if no choices available
+            if len(values) == 0:
+                t_done = car_tuple[0] + MEAN_WAITING_TIME
+                car_tuple = (t_done, car_tuple[1], car_tuple[2], car_tuple[3])
+                departs(car_tuple[1],car_tuple[2])
+                schedule(car_tuple, arrives)
+            # Choices are available, lets move
+            else:
+                #print (values)
+                random_bound = len(values) - 1
+                index = randint(0,random_bound)
+                #print (index)
+                # check for capacity
+                #print (car_tuple)
+                if car_tuple[1] not in parkingLots:
+                    #print ("parkinglot ",parkingLots)
+                    #print (car_tuple[1])
+                    departs(car_tuple[1], car_tuple[2])
+                car_tuple = (car_tuple[0], car_tuple[2], values[index][0], car_tuple[3])
+                paths[car_tuple[3]].append(car_tuple[2])
+                #print (car_tuple)
 
+                #if car_tuple[1] != car_tuple[3]: #not in parking lot
 
-        if car_tuple[1] != car_tuple[3]: #not in parking lot
-            departs(car_tuple[1], car_tuple[2])
-        schedule(car_tuple, arrives)
+                schedule(car_tuple, arrives)
 
 
 def departs (fromNode, toNode):
@@ -191,15 +243,19 @@ def departs (fromNode, toNode):
     Returns the new system state.
     """
     #print("FROM AND TO NODES IN DEPARTS:", fromNode, "===>", toNode)
-    global currentRoadCapacities
-    values = currentRoadCapacities[fromNode]
+    #global currentRoadCapacities
+
+    changeAvailableCapacity(fromNode, toNode, False)
+
+
+    #values = currentRoadCapacities[fromNode]
     #print("TST:", fromNode, ":", toNode)
     #print("VALUES IN DEPART:", values)
     # find to node in the list of value and increase its capacity i.e. it has departed
-    for value in values:
-        if toNode == value[0]:
-            inc_cap = value[1] + 1
-            value = (value[0], inc_cap)
+    # for value in values:
+    #     if toNode == value[0]:
+    #         inc_cap = value[1] + 1
+    #         value = (value[0], inc_cap)
 
 
 
@@ -225,23 +281,43 @@ def simulate (events):
 
     # print ("\nFuture event list:\n%s" % str (events))
     # print ("\nt=0: %s" % str (s))
+    count = 0
 
     while events:
         (car_tuple,event) = heappop (events)
         event(car_tuple)
-        #print(exit_count)
+        count += 1
+        capacityTracker.append(calcAvailableCapSys())
+        if count > 100000:
+            break
         #print ("t=%d: event '%s' => '%s'" % (t, e.__name__, str (s)))
+    print("count",count)
+    print ("each exit count", exit_count)
 
+# A check
+def calcAvailableCapSys():
+    count = 0
 
+    for key in currentRoadCapacities:
+        for queue in currentRoadCapacities[key]:
+            count += queue[1]
+
+    return count
 
 # More test code: If everything worked, so should this simulation!
 
 def main():
     args = sys.argv
+    global parkingLots
+    global currentRoadCapacities
 
     intersections, parkingLots = readFileAndSetUp(args[1])
     currentRoadCapacities = createQueuingCapacityDict(intersections)
 
+    # Temp for only one parking lot
+    newParkingLots = {}
+    newParkingLots[(50,87)] = parkingLots[(50,87)]
+    print (newParkingLots)
 
 
     # Test
@@ -250,12 +326,40 @@ def main():
     # print (parkingLots)
     # print (calculateRoadCapacity((0,0), (10,0), 1))
 
-    #print (intersections)
-    #print (parkingLots)
-    #print (calculateRoadCapacity((0,0), (10,0), 1))
-    globalQueue(parkingLots)
-    #print("GLOBAL QUEUE:", sorted(globalTimeList))
+    globalQueue(newParkingLots)
+    print (len(globalTimeList))
+    print("GLOBAL QUEUE:", sorted(globalTimeList))
     simulate (globalTimeList)
+
+    # print (len(paths))
+    print("originalTracker",capacityTracker[0])
+    print("currentTracker",capacityTracker[-1])
+
+    print (len(globalTimeList))
+    print ("current globaltimelist",globalTimeList)
+    #print("(523,229)",currentRoadCapacities[(523,229)])
+    #print("(562,32)",currentRoadCapacities[(562,32)])
+
+    # print (capacityTracker)
+    # Plot road capacities
+    #plt.plot(capacityTracker)
+    #plt.show()
+
+    # Plot paths of cars
+    # for key in paths:
+    #     dataArray = np.array(paths[key])
+    #     transposed = dataArray.T
+    #     x,y = transposed
+        #plt.plot(x,y)
+
+    #plt.gca().invert_yaxis()
+    #plt.show()
+
+
+
+
+
+
     #print("EXIT CT", exit_count)
 if __name__=='__main__':
 	main()
