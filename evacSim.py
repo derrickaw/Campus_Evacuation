@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 
 # Globals
 X_MEAN_PARKING = 5.0
-PARKING_CAP = 1
+PARKING_CAP = .5
 SCALE = 70/500
 CAR_SIZE = 15 * SCALE
 POLICE = False
@@ -111,7 +111,30 @@ def createQueuingCapacityDict(intersections):
 
     return currentRoadCapacities
 
+"""
+Method to return a tuple of x,y coordinates, which is the closest distance to one
+of the exit points - this is used for the police scenario. This is the next location a car should
+move to.
+"""
+def provideListOfPossibleMovesPolice(fromNode, toNode):
+    availableMoves = []
+    curCapDownstreamFromToNode = currentRoadCapacities[toNode]
+    #print("curCAPDSFRMNODE:", curCapDownstreamFromToNode)
+    min_distance = float('infinity')
+    min_pair = None
+    for nextMove in curCapDownstreamFromToNode:
+        if nextMove[1] > 0 and nextMove[0] != fromNode:
+            if math.hypot(fromNode[0] - nextMove[0][0], fromNode[1] - nextMove[0][1]) < min_distance:
+                min_distance = math.hypot(fromNode[0] - nextMove[0][0], fromNode[1] - nextMove[0][1])
+                min_pair = [fromNode, nextMove[0]]
+                availableMoves.append(nextMove)
+    print("AVAIL MOVES:", availableMoves)
+    return availableMoves
 
+"""
+Method to return a list of tuples of x,y coordinates, which are all the possible locations that a
+car can move to. No left turns are allowed.
+"""
 def provideListOfPossibleMovesNoLeft(fromNode, toNode):
     availableMoves = []
 
@@ -120,13 +143,17 @@ def provideListOfPossibleMovesNoLeft(fromNode, toNode):
     for nextMove in curCapDownstreamFromToNode:
         print("FROMNODE:", fromNode)
         print("FROMNODE[0] - x-coor:", fromNode[0])
-        print("NEXTMOVE[0][0] - x-coor:", nextMove[0][0])
+        print("NEXTMOVE[0] - x-coor:", nextMove[0])
         # end of if statement to ensure no left moves are made
         if nextMove[1] > 0 and nextMove[0] != fromNode and nextMove[0][0] >= fromNode[0]:
             availableMoves.append(nextMove)
     print("AVAIL MOVES:", availableMoves)
     return availableMoves
 
+"""
+Method to return a list of tuples of x,y coordinates, which are all the possible locations that a
+car can move to.
+"""
 def provideListOfPossibleMoves(fromNode, toNode):
     availableMoves = []
 
@@ -222,7 +249,7 @@ def togo (car_tuple):
             #print("CURRENT RD CAP IN TOGO:" , currentRoadCapacities)
             #print("TOGO CAR TUP[1] - from:", car_tuple[1])
             #values = currentRoadCapacities[car_tuple[2]]
-            values = provideListOfPossibleMovesNoLeft(car_tuple[1], car_tuple[2])
+            values = provideListOfPossibleMovesPolice(car_tuple[1], car_tuple[2])
 
             # Make car wait, if no choices available
             if len(values) == 0:
