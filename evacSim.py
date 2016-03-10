@@ -202,7 +202,7 @@ def simulate (events, initial_state):
 
 def main():
     args = sys.argv
-
+    
     intersections, parkingLots = readFileAndSetUp(args[1])
     currentRoadCapacities = createQueuingCapacityDict(intersections)
 
@@ -210,7 +210,8 @@ def main():
 
     # Test
     # print (intersections)
-    # print (currentRoadCapacities)
+    print (currentRoadCapacities)
+    print (currentRoadCapacities[(379,409)])
     # print (parkingLots)
     # print (calculateRoadCapacity((0,0), (10,0), 1))
 
