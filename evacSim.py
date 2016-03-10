@@ -143,7 +143,7 @@ def provideListOfPossibleMovesNoLeft(fromNode, toNode):
     for nextMove in curCapDownstreamFromToNode:
         print("FROMNODE:", fromNode)
         print("FROMNODE[0] - x-coor:", fromNode[0])
-        print("NEXTMOVE[0] - x-coor:", nextMove[0])
+        print("NEXTMOVE[0][0] - x-coor:", nextMove[0][0])
         # end of if statement to ensure no left moves are made
         if nextMove[1] > 0 and nextMove[0] != fromNode and nextMove[0][0] >= fromNode[0]:
             availableMoves.append(nextMove)
