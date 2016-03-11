@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 
 # Globals
 X_MEAN_PARKING = 5.0
-PARKING_CAP = .5
+PARKING_CAP = .25
 SCALE = 70/500
 CAR_SIZE = 15 * SCALE
 POLICE = False
@@ -120,46 +120,57 @@ def provideListOfPossibleMovesPolice(fromNode, toNode):
     availableMoves = []
     curCapDownstreamFromToNode = currentRoadCapacities[toNode]
     #print("curCAPDSFRMNODE:", curCapDownstreamFromToNode)
+    #print("FROMNODE (CURR):", fromNode)
+    #print("TONODE (CURR):", toNode)
     min_distance = float('infinity')
     min_pair = None
     for nextMove in curCapDownstreamFromToNode:
         if nextMove[1] > 0 and nextMove[0] != fromNode:
-            if math.hypot(fromNode[0] - nextMove[0][0], fromNode[1] - nextMove[0][1]) < min_distance:
-                min_distance = math.hypot(fromNode[0] - nextMove[0][0], fromNode[1] - nextMove[0][1])
-                min_pair = [fromNode, nextMove[0]]
-                availableMoves.append(nextMove)
-    print("AVAIL MOVES:", availableMoves)
+            for exitPoint in exit_list:
+                temp_min_distance = math.hypot(exitPoint[0] - nextMove[0][0], exitPoint[1] - nextMove[0][1])
+                if temp_min_distance < min_distance:
+                    min_distance = temp_min_distance
+                    min_pair = [exitPoint, nextMove]
+                    #print("MIN_DISTANCE:", min_distance)
+                    #print("MIN DISTANCE PAIR:", min_pair)
+    if min_pair != None:
+        availableMoves.append(min_pair[1])
+    #print("AVAIL MOVES:", availableMoves)
+    #print("")
     return availableMoves
 
 """
 Method to return a list of tuples of x,y coordinates, which are all the possible locations that a
-car can move to. No left turns are allowed.
+car can move to. No left turns are allowed. This is an addition to the model that we decided to include for FUN!
 """
 def provideListOfPossibleMovesNoLeft(fromNode, toNode):
     availableMoves = []
 
     curCapDownstreamFromToNode = currentRoadCapacities[toNode]
-    print("curCAPDSFRMNODE:", curCapDownstreamFromToNode)
+    #print("curCAPDSFRMNODE:", curCapDownstreamFromToNode)
+    #print("FROMNODE (CURR):", fromNode)
+    #print("TONODE (CURR):", toNode)
     for nextMove in curCapDownstreamFromToNode:
-        print("FROMNODE:", fromNode)
-        print("FROMNODE[0] - x-coor:", fromNode[0])
-        print("NEXTMOVE[0][0] - x-coor:", nextMove[0][0])
+        #print("TONODE[0] (CURR) - x-coor:", toNode[0] - 10)
+        #print("NEXTMOVE", nextMove[0])
+        #print("NEXTMOVE[0][0] - x-coor:", nextMove[0][0])
         # end of if statement to ensure no left moves are made
-        if nextMove[1] > 0 and nextMove[0] != fromNode and nextMove[0][0] >= fromNode[0]:
+        if nextMove[1] > 0 and nextMove[0][0] >= toNode[0] - 20:
             availableMoves.append(nextMove)
-    print("AVAIL MOVES:", availableMoves)
+    #print("AVAIL MOVES:", availableMoves)
+    #print("")
     return availableMoves
 
 """
 Method to return a list of tuples of x,y coordinates, which are all the possible locations that a
-car can move to.
+car can move to. This will represen the random - red flashing light scenario.
 """
-def provideListOfPossibleMoves(fromNode, toNode):
+def provideListOfPossibleMovesRedLight(fromNode, toNode):
     availableMoves = []
 
     curCapDownstreamFromToNode = currentRoadCapacities[toNode]
     for nextMove in curCapDownstreamFromToNode:
-        if nextMove[1] > 0 and nextMove[0] != fromNode:
+        if nextMove[1] > 0:
             availableMoves.append(nextMove)
 
     return availableMoves
@@ -249,7 +260,7 @@ def togo (car_tuple):
             #print("CURRENT RD CAP IN TOGO:" , currentRoadCapacities)
             #print("TOGO CAR TUP[1] - from:", car_tuple[1])
             #values = currentRoadCapacities[car_tuple[2]]
-            values = provideListOfPossibleMovesPolice(car_tuple[1], car_tuple[2])
+            values = provideListOfPossibleMovesNoLeft(car_tuple[1], car_tuple[2])
 
             # Make car wait, if no choices available
             if len(values) == 0:
@@ -330,8 +341,8 @@ def simulate (events):
         event(car_tuple)
         count += 1
         capacityTracker.append(calcAvailableCapSys())
-        if count > 100000:
-            break
+        # if count > 300000:
+        #     break
         #print ("t=%d: event '%s' => '%s'" % (t, e.__name__, str (s)))
     print("count",count)
     print ("each exit count", exit_count)
@@ -356,10 +367,10 @@ def main():
     intersections, parkingLots = readFileAndSetUp(args[1])
     currentRoadCapacities = createQueuingCapacityDict(intersections)
 
-    # Temp for only one parking lot
-    newParkingLots = {}
-    newParkingLots[(50,87)] = parkingLots[(50,87)]
-    print (newParkingLots)
+    # # Temp for only one parking lot
+    # newParkingLots = {}
+    # newParkingLots[(50,87)] = parkingLots[(50,87)]
+    # print (newParkingLots)
 
 
     # Test
@@ -368,7 +379,8 @@ def main():
     # print (parkingLots)
     # print (calculateRoadCapacity((0,0), (10,0), 1))
 
-    globalQueue(newParkingLots)
+    #globalQueue(newParkingLots)
+    globalQueue(parkingLots)
     print (len(globalTimeList))
     #print("GLOBAL QUEUE:", sorted(globalTimeList))
     simulate (globalTimeList)
@@ -378,8 +390,8 @@ def main():
     print("currentTracker",capacityTracker[-1])
 
     print (len(globalTimeList))
-    #print ("current globaltimelist",globalTimeList)
-    #print("(523,229)",currentRoadCapacities[(523,229)])
+    print ("AFTER COMPLETION globaltimelist",globalTimeList)
+    #print("(539,212)",currentRoadCapacities[(539,212)])
     #print("(562,32)",currentRoadCapacities[(562,32)])
 
     # print (capacityTracker)
@@ -388,14 +400,14 @@ def main():
     plt.show()
 
     # Plot paths of cars
-    # for key in paths:
-    #     dataArray = np.array(paths[key])
-    #     transposed = dataArray.T
-    #     x,y = transposed
-        #plt.plot(x,y)
+    for key in paths:
+        dataArray = np.array(paths[key])
+        transposed = dataArray.T
+        x,y = transposed
+        plt.plot(x,y)
 
-    #plt.gca().invert_yaxis()
-    #plt.show()
+    plt.gca().invert_yaxis()
+    plt.show()
 
 
 
