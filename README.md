@@ -45,6 +45,7 @@ Some simplifications are made for our campus evacuation model. Since It is both 
 Some data about our simulation is hard to collect. So we need to make some assumptions to process our model.
 - There is no record for drivers’ behaviors. Thus, we treat all drivers as unaggressive drivers, and then we induce no one will pass the cars before.
 - Entering time for each car, entering intersection for each car and exiting intersection for each car all obey uniform distribution.
+- The world1.csv was editted by taking out some a few of the deadends in the graph as they were causing some cars to get stuck in some simulations because we weren't allowing cars to do a u-turn.  The final csv file is named world2.csv.
 
 ### Experiments:
 The following are different scenarios we will experiment with:
@@ -52,3 +53,9 @@ The following are different scenarios we will experiment with:
 - Change the car size (vary it to make it from small to big in order to resemble all motorcycles or small cars for the small size and trucks or SUVs for the big size) and compare the times for both the scenarios with the baseline model.  
 
 #####NOTE: Some of these scenarios will neglect the simplifications and assumptions made for the baseline model. 
+
+### How to Run Code:
+- The basic format if you are running from a command line prompt is "python evalSim.py world2.csv ['police', 'noWest', 'random'] ['0.01'-'1.00'] ['capacity','path',or 'both']".  
+- If running in say pycharm, set edit configuration to "world2.csv ['police', 'noWest', 'random'] ['0.01'-'1.00'] ['capacity','path',or 'both']".
+
+
