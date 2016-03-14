@@ -3,7 +3,7 @@
 
 ### By: Derrick Williams and Tilak Patel
 
-#### Date: March 4, 2016 [March 14, 2016 updated]
+#### Date: March 14, 2016
 
 ### Campus Evacuation Task:
 Our task is to design a conceptual model and implement a simulator that could be used to study traffic management plans for evacuating the Georgia Tech campus.
