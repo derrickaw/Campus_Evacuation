@@ -260,7 +260,7 @@ def togo (car_tuple):
             #print("CURRENT RD CAP IN TOGO:" , currentRoadCapacities)
             #print("TOGO CAR TUP[1] - from:", car_tuple[1])
             #values = currentRoadCapacities[car_tuple[2]]
-            values = provideListOfPossibleMovesNoLeft(car_tuple[1], car_tuple[2])
+            values = provideListOfPossibleMovesPolice(car_tuple[1], car_tuple[2])
 
             # Make car wait, if no choices available
             if len(values) == 0:
