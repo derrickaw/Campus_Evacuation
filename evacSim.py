@@ -11,11 +11,12 @@ import matplotlib.pyplot as plt
 
 
 # Globals
-X_MEAN_PARKING = 5.0
-PARKING_CAP = .25
+X_MEAN_PARKING = 15
+PARKING_CAPACITY = .25 # DEFAULT
 SCALE = 70/500
-CAR_SIZE = 15 * SCALE
+CAR_SIZE = 15 * SCALE  # DEFAULT is 15' long cars
 POLICE = False
+RUN_METHOD = 1 # DEFAULT is police option
 # Event parameters
 MEAN_TRAVEL_TIME = 5.0 # seconds
 MEAN_WAITING_TIME = 2.0 # seconds
@@ -26,6 +27,8 @@ exit_count = {(723,32):0, (733,270):0, (760,555):0} # Count cars exiting
 paths = {}
 capacityTracker = []
 parkingLots = {}
+now = 0.0 # Current (logical) simulation time
+
 
 """
 Method to read from the world file and create a basic graph dictionary to pull
@@ -112,9 +115,12 @@ def createQueuingCapacityDict(intersections):
     return currentRoadCapacities
 
 """
-Method to return a tuple of x,y coordinates, which is the closest distance to one
-of the exit points - this is used for the police scenario. This is the next location a car should
-move to.
+Method to return a tuple of x,y coordinates, which is the closest distance to
+one of the exit points - this is used for the police scenario. This is the next
+location a car should move to.
+fromNode - Where car is coming from
+toNode   - Where car is going to; basically symbolizes road segment
+return   - Next location for car to go to [(x,y)]
 """
 def provideListOfPossibleMovesPolice(fromNode, toNode):
     availableMoves = []
@@ -140,8 +146,12 @@ def provideListOfPossibleMovesPolice(fromNode, toNode):
     return availableMoves
 
 """
-Method to return a list of tuples of x,y coordinates, which are all the possible locations that a
-car can move to. No left turns are allowed. This is an addition to the model that we decided to include for FUN!
+Method to return a list of tuples of x,y coordinates, which are all the possible
+locations that a car can move to. No westward turns are allowed within a small
+factor. This is an addition to the model that we decided to include for FUN!
+fromNode - Where car is coming from
+toNode   - Where car is going to; basically symbolizes road segment
+return   - Next locations for car to go to [(x,y),(x,y),(x,y)]
 """
 def provideListOfPossibleMovesNoLeft(fromNode, toNode):
     availableMoves = []
@@ -162,8 +172,12 @@ def provideListOfPossibleMovesNoLeft(fromNode, toNode):
     return availableMoves
 
 """
-Method to return a list of tuples of x,y coordinates, which are all the possible locations that a
-car can move to. This will represen the random - red flashing light scenario.
+Method to return a list of tuples of x,y coordinates, which are all the possible
+locations that a car can move to. This will represent the random - red flashing
+light scenario.
+fromNode - Where car is coming from
+toNode   - Where car is going to; basically symbolizes road segment
+return   - Next location for car to go to [(x,y),(x,y),(x,y)]
 """
 def provideListOfPossibleMovesRedLight(fromNode, toNode):
     availableMoves = []
@@ -176,6 +190,14 @@ def provideListOfPossibleMovesRedLight(fromNode, toNode):
     return availableMoves
 
 
+
+"""
+Method to change available capacity in the master queue dictionary based on if
+car is arriving or departing from a particular segment of road.
+fromNode - Where car is coming from
+toNode   - Where car is going to; basically symbolizes road segment
+return   - None
+"""
 def changeAvailableCapacity(fromNode, ToNode, arriving=True):
     global currentRoadCapacities
 
@@ -190,16 +212,21 @@ def changeAvailableCapacity(fromNode, ToNode, arriving=True):
                 curCapDownstreamFromNode[i] = (ToNode, curCapDownstreamFromNode[i][1]+1)
 
 
-    #print ("end",curCapDownstreamFromNode)
 
-
+"""
+Method to create global event queue with all cars inserted in at an exponential
+random time.
+parkingDicts - parking lot dictionary containing the location of each parking
+lot and the designated capacity of the parking lot
+return - None
+"""
 # Create the global queue of car tuples
 def globalQueue(parkingDicts):
     global globalTimeList
 
     for key in parkingDicts:
         #print(key, parkingDicts[key][0])
-        X_COUNT = int(parkingDicts[key] * PARKING_CAP)
+        X_COUNT = int(parkingDicts[key] * PARKING_CAPACITY)
         x_values = exponential (X_MEAN_PARKING, X_COUNT)
         #print("X ~ Exp(%g):" % X_MEAN)
         #for (i, x_i) in enumerate (x_values):
@@ -215,8 +242,12 @@ def globalQueue(parkingDicts):
     heapify(globalTimeList)
 
 
-now = 0.0 # Current (logical) simulation time
-
+"""
+Method to schedule an event onto the global scheduler
+car_tuple - (#timestamp, fromNode, toNode, parkinglot((50,87),car #))
+event     - what event (arrives, togo, departs)
+return    - None
+"""
 def schedule (car_tuple, event):
     """
     Schedules a new event `e` at time `t`.
@@ -224,6 +255,11 @@ def schedule (car_tuple, event):
     global globalTimeList
     heappush (globalTimeList, (car_tuple, event))
 
+"""
+Method to simulate arrival of car into road segment
+car_tuple - (#timestamp, fromNode, toNode, parkinglot((50,87),car #))
+return    - None
+"""
 def arrives (car_tuple):
     """
     Processes an arrival event at time `t` for a system in state `s`.
@@ -235,60 +271,78 @@ def arrives (car_tuple):
     car_tuple = (t_done, car_tuple[1], car_tuple[2], car_tuple[3])
     schedule (car_tuple, togo)
 
+"""
+Method to simulate togo event of car from one road segment to another road
+segment
+car_tuple - (#timestamp, fromNode, toNode, parkinglot((50,87),car #))
+return    - None
+"""
 def togo (car_tuple):
-    # TODO: no leftward, check capacity (if exceeds cap, then put back into globalqueue - maybe call schedule again?),
-    # check if the event methods make sense and the simulate is properly executing, add shortest distance for POPO and
-    # get random route scenario working
     global exit_count
+    values = []  # list of possible moves
 
-    "figure out where to go"
+    # "figure out where to go"
+    # If car has reached an exit point, take car out of simulation
     if car_tuple[2] in exit_list:
         exit_count[car_tuple[2]] += 1
         departs(car_tuple[1],car_tuple[2])
     else:
 
-        if POLICE:
-            #shortest distance
-            values = currentRoadCapacities[car_tuple[1]]
-            mini_distance_list = []
-            for value in values:
-                mini_distance_list.append(math.hypot(car_tuple[1][0] - value[0], car_tuple[1][1] - value[1]))
-
-            shortest_distance = min(mini_distance_list)
-            car_tuple = (car_tuple[0], car_tuple[2], shortest_distance, car_tuple[3])
-        else: # random location
+        # if POLICE:
+        #     #shortest distance
+        #     values = currentRoadCapacities[car_tuple[1]]
+        #     mini_distance_list = []
+        #     for value in values:
+        #         mini_distance_list.append(math.hypot(car_tuple[1][0] - value[0], car_tuple[1][1] - value[1]))
+        #
+        #     shortest_distance = min(mini_distance_list)
+        #     car_tuple = (car_tuple[0], car_tuple[2], shortest_distance, car_tuple[3])
+        # else: # random location
             #print("CURRENT RD CAP IN TOGO:" , currentRoadCapacities)
             #print("TOGO CAR TUP[1] - from:", car_tuple[1])
             #values = currentRoadCapacities[car_tuple[2]]
+
+        # Determine how the possible moves should be determined
+        if RUN_METHOD == "police":    # Police option
             values = provideListOfPossibleMovesPolice(car_tuple[1], car_tuple[2])
+        elif RUN_METHOD == "noWest":  # No west move option
+            values = provideListOfPossibleMovesNoLeft(car_tuple[1], car_tuple[2])
+        elif RUN_METHOD == "random":  # Totally random option
+            values = provideListOfPossibleMovesRedLight(car_tuple[1], car_tuple[2])
 
-            # Make car wait, if no choices available
-            if len(values) == 0:
-                t_done = car_tuple[0] + MEAN_WAITING_TIME
-                car_tuple = (t_done, car_tuple[1], car_tuple[2], car_tuple[3])
-                departs(car_tuple[1],car_tuple[2])
-                schedule(car_tuple, arrives)
-            # Choices are available, lets move
-            else:
-                #print (values)
-                random_bound = len(values) - 1
-                index = randint(0,random_bound)
-                #print (index)
-                # check for capacity
-                #print (car_tuple)
-                if car_tuple[1] not in parkingLots:
-                    #print ("parkinglot ",parkingLots)
-                    #print (car_tuple[1])
-                    departs(car_tuple[1], car_tuple[2])
-                car_tuple = (car_tuple[0], car_tuple[2], values[index][0], car_tuple[3])
-                paths[car_tuple[3]].append(car_tuple[2])
-                #print (car_tuple)
+        # Make car wait, if no choices available
+        if len(values) == 0:
+            t_done = car_tuple[0] + MEAN_WAITING_TIME
+            car_tuple = (t_done, car_tuple[1], car_tuple[2], car_tuple[3])
+            departs(car_tuple[1],car_tuple[2])
+            schedule(car_tuple, arrives)
+        # Choices are available, lets move
+        else:
+            #print (values)
+            random_bound = len(values) - 1
+            index = randint(0,random_bound)
+            #print (index)
+            # check for capacity
+            #print (car_tuple)
+            # Check for leaving parking lot; don't increase capacity if so
+            if car_tuple[1] not in parkingLots:
+                #print ("parkinglot ",parkingLots)
+                #print (car_tuple[1])
+                departs(car_tuple[1], car_tuple[2])
+            car_tuple = (car_tuple[0], car_tuple[2], values[index][0], car_tuple[3])
+            paths[car_tuple[3]].append(car_tuple[2])
+            #print (car_tuple)
 
-                #if car_tuple[1] != car_tuple[3]: #not in parking lot
+            #if car_tuple[1] != car_tuple[3]: #not in parking lot
 
-                schedule(car_tuple, arrives)
+            schedule(car_tuple, arrives)
 
-
+"""
+Method to simulate depart event from a road segment
+fromNode - Where car is coming from
+toNode   - Where car is going to; basically symbolizes road segment
+return   - None
+"""
 def departs (fromNode, toNode):
     """
     Processes a finished-pumping event at time `t` for a system in
@@ -330,6 +384,13 @@ def calculateRoadCapacity(firstNode, secondNode, numLanes):
     return int(numCarsCapacity)
 
 
+
+"""
+Method to start simulation.  Simulation will end once all events are done.
+A trigger counter is in place in case user wants to run the totally random
+simulation which theortically may never end unless the trigger counter is used.
+events - global list of events to work through
+"""
 def simulate (events):
 
     # print ("\nFuture event list:\n%s" % str (events))
@@ -341,13 +402,18 @@ def simulate (events):
         event(car_tuple)
         count += 1
         capacityTracker.append(calcAvailableCapSys())
-        # if count > 300000:
-        #     break
+        if count > 1500000:
+            break
         #print ("t=%d: event '%s' => '%s'" % (t, e.__name__, str (s)))
     print("count",count)
     print ("each exit count", exit_count)
 
-# A check
+
+"""
+Method to check current capacity in master queue dictionary; symbolizes current
+capacity on all roads.
+return - None
+"""
 def calcAvailableCapSys():
     count = 0
 
@@ -357,17 +423,34 @@ def calcAvailableCapSys():
 
     return count
 
-# More test code: If everything worked, so should this simulation!
 
 def main():
     args = sys.argv
     global parkingLots
     global currentRoadCapacities
+    global RUN_METHOD
+    global PARKING_CAPACITY
 
-    intersections, parkingLots = readFileAndSetUp(args[1])
+    if len(args) != 5:
+        print ("Incorrect number of arguments - Format-> python evalSim.py "
+               "world2.csv (police, noWest, random) (0.01-1.00) (capacity,path,"
+               "or both)")
+        exit(0)
+
+    mapFile = args[1]
+    RUN_METHOD = args[2] # 1(Police), 2(No West), 3(Random, Redlight)
+    PARKING_CAPACITY = float(args[3])
+    plottingMethod = args[4]
+
+    #print (type(mapFile))
+    #print (type(runMethod))
+    #print (type(percentParkingLotFull))
+    # Create intersections and parking lots dictionary
+    intersections, parkingLots = readFileAndSetUp(mapFile)
+    # Create current road capacities dictionary
     currentRoadCapacities = createQueuingCapacityDict(intersections)
 
-    # # Temp for only one parking lot
+    # Temp for only one parking lot
     # newParkingLots = {}
     # newParkingLots[(50,87)] = parkingLots[(50,87)]
     # print (newParkingLots)
@@ -380,12 +463,16 @@ def main():
     # print (calculateRoadCapacity((0,0), (10,0), 1))
 
     #globalQueue(newParkingLots)
+
+    # Create global event queue to run simulation with
     globalQueue(parkingLots)
-    print (len(globalTimeList))
+    #print (len(globalTimeList))
     #print("GLOBAL QUEUE:", sorted(globalTimeList))
+
+    # Run Simulation
     simulate (globalTimeList)
 
-    # print (len(paths))
+
     print("originalTracker",capacityTracker[0])
     print("currentTracker",capacityTracker[-1])
 
@@ -394,24 +481,20 @@ def main():
     #print("(539,212)",currentRoadCapacities[(539,212)])
     #print("(562,32)",currentRoadCapacities[(562,32)])
 
-    # print (capacityTracker)
-    # Plot road capacities
-    plt.plot(capacityTracker)
-    plt.show()
 
-    # Plot paths of cars
-    for key in paths:
-        dataArray = np.array(paths[key])
-        transposed = dataArray.T
-        x,y = transposed
-        plt.plot(x,y)
-
-    plt.gca().invert_yaxis()
-    plt.show()
-
-
-
-
+    if plottingMethod == "capacity" or plottingMethod == "both":
+        # Plot road capacities
+        plt.plot(capacityTracker)
+        plt.show()
+    elif plottingMethod == "path" or plottingMethod == "both":
+        # Plot paths of cars
+        for key in paths:
+            dataArray = np.array(paths[key])
+            transposed = dataArray.T
+            x,y = transposed
+            plt.plot(x,y)
+        plt.gca().invert_yaxis()
+        plt.show()
 
 
     #print("EXIT CT", exit_count)
