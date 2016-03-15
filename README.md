@@ -37,9 +37,9 @@ Also, since the simulation must be stochastic, i.e., use random numbers to model
 Some simplifications are made for our campus evacuation model. Since It is both unnecessary and difficult to take some details into consideration in our model, we make the following simplifications:
 - We are making all the cars the same size (15') for the model.
 - Mean parking lot leave parameter of 15 seconds per car to be used in the exponiental random generator.
-- Mean travel time between each intersection node is 5 seconds.
-- Mean wait time for a downstream segment to open up is 2 seconds.
+- Mean wait time for a downstream segment to open up is 5 seconds.
 - Police are at each intersection guiding traffic.
+- Average travel speed is 25 mph to simulate somewhat real movement of the car
  
 ### Assumptions:
 Some data about our simulation is hard to collect. So we need to make some assumptions to process our model.
