@@ -19,7 +19,7 @@ This campus evacuation model can be abstracted as a queueing network conceptual 
 
 4. The provided dataset for the roads and intersections (world2.csv) will be used to build the network of nodes, parking lots, and queues.  For our model, a capacity of 1 means 1 lane each way, while a capacity of 2 means 2 lanes each way.
 
-5. Travel time (global of 5 seconds) will be considered in the model from traveling from one node to the next as the time will add up over time.
+5. Travel time was originally considered constant at 5 seconds, but that caused the cars to travel in waves stepping through the network like there is no difference between each intersection.  With the final version, travel time is considered based on how much capacity is left in each road segment, taking the car size, and an average speed that cars would travel through the network, a travel time is calculated for everytime a car comes into a new road segment and added to the timestamp for event queuing.  (Global speed assumed at 20 mph)
 
 6. If a car has to wait because all downstream feasible options are at capacity, the car will get put back into the process queue for another 2 seconds before given another chance to move downstream.  A wait time (global of 2 seconds) will be considered before a car has a chance again to move through an intersection to the next downstream queue.
 
@@ -36,7 +36,7 @@ Also, since the simulation must be stochastic, i.e., use random numbers to model
 ### Simplifications:
 Some simplifications are made for our campus evacuation model. Since It is both unnecessary and difficult to take some details into consideration in our model, we make the following simplifications:
 - We are making all the cars the same size (15') for the model.
-- Mean parkin lot leave parameter of 15 seconds per car to be used in the exponiental random generator.
+- Mean parking lot leave parameter of 15 seconds per car to be used in the exponiental random generator.
 - Mean travel time between each intersection node is 5 seconds.
 - Mean wait time for a downstream segment to open up is 2 seconds.
 - Police are at each intersection guiding traffic.
@@ -55,8 +55,8 @@ The following are different scenarios we will experiment with:
 #####NOTE: Some of these scenarios will neglect the simplifications and assumptions made for the baseline model. 
 
 ### How to Run Code:
-- The basic format if you are running from a command line prompt is "python evalSim.py world2.csv ['police', 'noWest', 'random'] ['0.01'-'1.00'] ['capacity','path',or 'both'] [# of simulations]".  
-- If running in say pycharm, set edit configuration to "world2.csv ['police', 'noWest', 'random'] ['0.01'-'1.00'] ['capacity','path',or 'both'] [# of simulations]".
+- The basic format if you are running from a command line prompt is "python evalSim.py world2.csv ['police', 'noWest', 'random'] ['0.005'-'1.00'] ['capacity','path',or 'both'] [# of simulations]".  
+- If running in say pycharm, set edit configuration to "world2.csv ['police', 'noWest', 'random'] ['0.005'-'1.00'] ['capacity','path',or 'both'] [# of simulations]".
 
 
 
