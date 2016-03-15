@@ -54,7 +54,7 @@ The following are different scenarios we will experiment with:
 
 #####NOTE: Some of these scenarios will neglect the simplifications and assumptions made for the baseline model. 
 
-### How to Run evalSim.py:
+### How to Run evacSim.py:
 - The basic format if you are running from a command line prompt is "python evalSim.py world2.csv ['police', 'noWest', 'random'] ['0.005'-'1.00'] ['capacity','path',or 'both'] [# of simulations]".  
 - If running in say pycharm, set edit configuration to "world2.csv ['police', 'noWest', 'random'] ['0.005'-'1.00'] ['capacity','path',or 'both'] [# of simulations]".
 
