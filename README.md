@@ -59,7 +59,9 @@ The following are different scenarios we will experiment with:
 - If running in say pycharm, set edit configuration to "world2.csv ['police', 'noWest', 'random'] ['0.005'-'1.00'] ['capacity','path',or 'both'] [# of simulations]".
 
 ### How to Run chiSquareTest.py:
-- 
+- The basic format if you are running from a command line prompt is "python chiSquare.py".
+- If running in say pycharm, select the file (chiSquare.py) in the left hand side or the orginization window pane and right click and select "Run 'chiSquare'" or just click the green run button. 
+- After you run the file, the analysis is also included in the console output.
 
 
 
